@@ -26,6 +26,12 @@ const businessSchema = {
   email: { required: false }
 };
 
+async function getBusinessesCount() {
+  const [results] = await mysqlPool.query(
+    "SELECT COUNT(*) AS count FROM businesses"
+  );
+  return results[0].count;
+}
 /*
  * Route to return a list of businesses.
  */
@@ -76,6 +82,18 @@ router.get('/', function (req, res) {
 
 });
 
+async function insertNewBusiness(business) {
+  const validatedBusiness = extractValidFields(
+    business,
+    businessSchema
+  );
+  const [result] = await mysqlPool.query(
+    'INSERT INTO businesses SET ?',
+    validatedBusiness
+  );
+
+  return result.insertId;
+}
 /*
  * Route to create a new business.
  */
@@ -96,6 +114,14 @@ router.post('/', function (req, res, next) {
     });
   }
 });
+
+async function getBusinessById(businessid) {
+  const [results] = await mysqlPool.query(
+    'SELECT * FROM businesses WHERE id = ?',
+    [businessid],
+);
+return results[0];
+}
 
 /*
  * Route to fetch info about a specific business.
@@ -119,6 +145,17 @@ router.get('/:businessid', function (req, res, next) {
   }
 });
 
+async function updateBusinessById(businessid, business) {
+  const validatedBusiness = extractValidFields(
+    business,
+    businessSchema
+  );
+  const [result] = mysqlPool.query(
+      'UPDATE businesses SET ? WHERE id = ?',
+      [validatedBusiness, businessid ]
+  );
+  return result.affectedRows > 0;
+}
 /*
  * Route to replace data for a business.
  */
@@ -145,6 +182,13 @@ router.put('/:businessid', function (req, res, next) {
   }
 });
 
+async function deleteBusinessByID(businessid) {
+  const [result] = await mysqlPool.query(
+      'DELETE FROM businesses WHERE id = ?',
+      [businessid]
+  );
+  return result.affectedRows > 0;
+}
 /*
  * Route to delete a business.
  */
