@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const { validateAgainstSchema, extractValidFields } = require('../lib/validation');
+const mysqlPool = require('../lib/mysqlPool');
 
 const businesses = require('../data/businesses');
 const { reviews } = require('./reviews');
