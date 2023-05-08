@@ -18,10 +18,23 @@ const reviewSchema = {
   review: { required: false }
 };
 
-
 /*
  * Route to create a new review.
  */
+
+async function insertNewReview(review) {
+  const validatedReview = extractValidFields(
+    review,
+    reviewSchema
+  );
+  const [result] = await mysqlPool.query(
+    'INSERT INTO reviews SET ?',
+    validatedReview
+  );
+
+  return result.insertId;
+}
+
 router.post('/', function (req, res, next) {
   if (validateAgainstSchema(req.body, reviewSchema)) {
 
@@ -62,6 +75,15 @@ router.post('/', function (req, res, next) {
 /*
  * Route to fetch info about a specific review.
  */
+
+async function getReviewById(reviewid) {
+  const [results] = await mysqlPool.query(
+    'SELECT * FROM reviews WHERE id = ?',
+    [reviewid],
+  );
+  return results[0];
+}
+
 router.get('/:reviewID', function (req, res, next) {
   const reviewID = parseInt(req.params.reviewID);
   if (reviews[reviewID]) {
@@ -74,6 +96,19 @@ router.get('/:reviewID', function (req, res, next) {
 /*
  * Route to update a review.
  */
+
+async function updateReviewById(reviewid, review) {
+  const validatedReview = extractValidFields(
+    review,
+    reviewSchema
+  );
+  const [result] = mysqlPool.query(
+    'UPDATE reviews SET ? WHERE id = ?',
+    [validatedReview, reviewid]
+  );
+  return result.affectedRows > 0;
+}
+
 router.put('/:reviewID', function (req, res, next) {
   const reviewID = parseInt(req.params.reviewID);
   if (reviews[reviewID]) {
@@ -113,6 +148,15 @@ router.put('/:reviewID', function (req, res, next) {
 /*
  * Route to delete a review.
  */
+
+async function deleteReviewByID(reviewid) {
+  const [result] = await mysqlPool.query(
+    'DELETE FROM reviews WHERE id = ?',
+    [reviewid]
+  );
+  return result.affectedRows > 0;
+}
+
 router.delete('/:reviewID', function (req, res, next) {
   const reviewID = parseInt(req.params.reviewID);
   if (reviews[reviewID]) {

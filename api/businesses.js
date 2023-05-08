@@ -126,8 +126,8 @@ async function getBusinessById(businessid) {
   const [results] = await mysqlPool.query(
     'SELECT * FROM businesses WHERE id = ?',
     [businessid],
-);
-return results[0];
+  );
+  return results[0];
 }
 
 router.get('/:businessid', function (req, res, next) {
@@ -159,8 +159,8 @@ async function updateBusinessById(businessid, business) {
     businessSchema
   );
   const [result] = mysqlPool.query(
-      'UPDATE businesses SET ? WHERE id = ?',
-      [validatedBusiness, businessid ]
+    'UPDATE businesses SET ? WHERE id = ?',
+    [validatedBusiness, businessid]
   );
   return result.affectedRows > 0;
 }
@@ -194,8 +194,8 @@ router.put('/:businessid', function (req, res, next) {
 
 async function deleteBusinessByID(businessid) {
   const [result] = await mysqlPool.query(
-      'DELETE FROM businesses WHERE id = ?',
-      [businessid]
+    'DELETE FROM businesses WHERE id = ?',
+    [businessid]
   );
   return result.affectedRows > 0;
 }
