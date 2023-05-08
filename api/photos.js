@@ -16,10 +16,23 @@ const photoSchema = {
   caption: { required: false }
 };
 
-
 /*
  * Route to create a new photo.
  */
+
+async function insertNewPhoto(photo) {
+  const validatedPhoto = extractValidFields(
+    photo,
+    photoSchema
+  );
+  const [result] = await mysqlPool.query(
+    'INSERT INTO photos SET ?',
+    validatedPhoto
+  );
+
+  return result.insertId;
+}
+
 router.post('/', function (req, res, next) {
   if (validateAgainstSchema(req.body, photoSchema)) {
     const photo = extractValidFields(req.body, photoSchema);
@@ -42,6 +55,15 @@ router.post('/', function (req, res, next) {
 /*
  * Route to fetch info about a specific photo.
  */
+
+async function getPhotoById(photoid) {
+  const [results] = await mysqlPool.query(
+    'SELECT * FROM photos WHERE id = ?',
+    [photoid],
+);
+return results[0];
+}
+
 router.get('/:photoID', function (req, res, next) {
   const photoID = parseInt(req.params.photoID);
   if (photos[photoID]) {
@@ -54,6 +76,18 @@ router.get('/:photoID', function (req, res, next) {
 /*
  * Route to update a photo.
  */
+async function updatePhotoById(photoid, photo) {
+  const validatedPhoto = extractValidFields(
+    photo,
+    photoSchema
+  );
+  const [result] = mysqlPool.query(
+      'UPDATE photos SET ? WHERE id = ?',
+      [validatedPhoto, photoid ]
+  );
+  return result.affectedRows > 0;
+}
+
 router.put('/:photoID', function (req, res, next) {
   const photoID = parseInt(req.params.photoID);
   if (photos[photoID]) {
@@ -93,6 +127,15 @@ router.put('/:photoID', function (req, res, next) {
 /*
  * Route to delete a photo.
  */
+
+async function deletePhotoByID(photoid) {
+  const [result] = await mysqlPool.query(
+      'DELETE FROM photos WHERE id = ?',
+      [photoid]
+  );
+  return result.affectedRows > 0;
+}
+
 router.delete('/:photoID', function (req, res, next) {
   const photoID = parseInt(req.params.photoID);
   if (photos[photoID]) {

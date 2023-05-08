@@ -82,6 +82,11 @@ router.get('/', function (req, res) {
 
 });
 
+
+/*
+ * Route to create a new business.
+ */
+
 async function insertNewBusiness(business) {
   const validatedBusiness = extractValidFields(
     business,
@@ -94,9 +99,7 @@ async function insertNewBusiness(business) {
 
   return result.insertId;
 }
-/*
- * Route to create a new business.
- */
+
 router.post('/', function (req, res, next) {
   if (validateAgainstSchema(req.body, businessSchema)) {
     const business = extractValidFields(req.body, businessSchema);
@@ -115,6 +118,10 @@ router.post('/', function (req, res, next) {
   }
 });
 
+/*
+ * Route to fetch info about a specific business.
+ */
+
 async function getBusinessById(businessid) {
   const [results] = await mysqlPool.query(
     'SELECT * FROM businesses WHERE id = ?',
@@ -123,9 +130,6 @@ async function getBusinessById(businessid) {
 return results[0];
 }
 
-/*
- * Route to fetch info about a specific business.
- */
 router.get('/:businessid', function (req, res, next) {
   const businessid = parseInt(req.params.businessid);
   if (businesses[businessid]) {
@@ -145,6 +149,10 @@ router.get('/:businessid', function (req, res, next) {
   }
 });
 
+/*
+ * Route to replace data for a business.
+ */
+
 async function updateBusinessById(businessid, business) {
   const validatedBusiness = extractValidFields(
     business,
@@ -156,9 +164,7 @@ async function updateBusinessById(businessid, business) {
   );
   return result.affectedRows > 0;
 }
-/*
- * Route to replace data for a business.
- */
+
 router.put('/:businessid', function (req, res, next) {
   const businessid = parseInt(req.params.businessid);
   if (businesses[businessid]) {
@@ -182,6 +188,10 @@ router.put('/:businessid', function (req, res, next) {
   }
 });
 
+/*
+ * Route to delete a business.
+ */
+
 async function deleteBusinessByID(businessid) {
   const [result] = await mysqlPool.query(
       'DELETE FROM businesses WHERE id = ?',
@@ -189,9 +199,7 @@ async function deleteBusinessByID(businessid) {
   );
   return result.affectedRows > 0;
 }
-/*
- * Route to delete a business.
- */
+
 router.delete('/:businessid', function (req, res, next) {
   const businessid = parseInt(req.params.businessid);
   if (businesses[businessid]) {
