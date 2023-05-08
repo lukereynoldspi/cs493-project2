@@ -129,7 +129,6 @@ router.put('/:photoID', async function (req, res, next) {
         error: "Request body is not a valid photo object"
       });
     }
-
   } else {
     next();
   }
