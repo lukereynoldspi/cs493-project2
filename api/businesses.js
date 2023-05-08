@@ -35,15 +35,16 @@ async function getBusinessesCount() {
 /*
  * Route to return a list of businesses.
  */
-router.get('/', function (req, res) {
+router.get('/', async function (req, res) {
 
   /*
    * Compute page number based on optional query string parameter `page`.
    * Make sure page is within allowed bounds.
    */
+  const totalCount = await getBusinessesCount();
   let page = parseInt(req.query.page) || 1;
   const numPerPage = 10;
-  const lastPage = Math.ceil(businesses.length / numPerPage);
+  const lastPage = Math.ceil(totalCount / numPerPage);
   page = page > lastPage ? lastPage : page;
   page = page < 1 ? 1 : page;
 
@@ -76,7 +77,7 @@ router.get('/', function (req, res) {
     pageNumber: page,
     totalPages: lastPage,
     pageSize: numPerPage,
-    totalCount: businesses.length,
+    totalCount: totalCount,
     links: links
   });
 
@@ -100,15 +101,13 @@ async function insertNewBusiness(business) {
   return result.insertId;
 }
 
-router.post('/', function (req, res, next) {
+router.post('/', async function (req, res, next) {
   if (validateAgainstSchema(req.body, businessSchema)) {
-    const business = extractValidFields(req.body, businessSchema);
-    business.id = businesses.length;
-    businesses.push(business);
+    const businessid = await insertNewBusiness(req.body);
     res.status(201).json({
-      id: business.id,
+      id: businessid,
       links: {
-        business: `/businesses/${business.id}`
+        business: `/businesses/${businessid}`
       }
     });
   } else {
@@ -130,20 +129,21 @@ async function getBusinessById(businessid) {
   return results[0];
 }
 
-router.get('/:businessid', function (req, res, next) {
+router.get('/:businessid', async function (req, res, next) {
   const businessid = parseInt(req.params.businessid);
-  if (businesses[businessid]) {
+  const business = await getBusinessById(businessid);
+  if (business) {
     /*
      * Find all reviews and photos for the specified business and create a
      * new object containing all of the business data, including reviews and
      * photos.
      */
-    const business = {
+    const businessinfo = {
       reviews: reviews.filter(review => review && review.businessid === businessid),
       photos: photos.filter(photo => photo && photo.businessid === businessid)
     };
-    Object.assign(business, businesses[businessid]);
-    res.status(200).json(business);
+    Object.assign(businessinfo, business);
+    res.status(200).json(businessinfo);
   } else {
     next();
   }
@@ -165,28 +165,34 @@ async function updateBusinessById(businessid, business) {
   return result.affectedRows > 0;
 }
 
-router.put('/:businessid', function (req, res, next) {
+router.put('/:businessid', async function (req, res, next) {
   const businessid = parseInt(req.params.businessid);
-  if (businesses[businessid]) {
 
+  if (businesses[businessid]) {
     if (validateAgainstSchema(req.body, businessSchema)) {
       businesses[businessid] = extractValidFields(req.body, businessSchema);
       businesses[businessid].id = businessid;
-      res.status(200).json({
-        links: {
-          business: `/businesses/${businessid}`
-        }
-      });
+
+      const result = await updateBusinessById(businessid, req.body);
+      if (result) {
+        res.status(200).json({
+          links: {
+            business: `/businesses/${businessid}`
+          }
+        });
+      } else {
+        next();
+      }
     } else {
       res.status(400).json({
         error: "Request body is not a valid business object"
       });
     }
-
   } else {
     next();
   }
 });
+
 
 /*
  * Route to delete a business.
@@ -200,10 +206,10 @@ async function deleteBusinessByID(businessid) {
   return result.affectedRows > 0;
 }
 
-router.delete('/:businessid', function (req, res, next) {
+router.delete('/:businessid', async function (req, res, next) {
   const businessid = parseInt(req.params.businessid);
-  if (businesses[businessid]) {
-    businesses[businessid] = null;
+  const deletedbusiness = await deleteBusinessByID(businessid);
+  if (deletedbusiness) {
     res.status(204).end();
   } else {
     next();

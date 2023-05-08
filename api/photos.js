@@ -33,16 +33,14 @@ async function insertNewPhoto(photo) {
   return result.insertId;
 }
 
-router.post('/', function (req, res, next) {
+router.post('/', async function (req, res, next) {
   if (validateAgainstSchema(req.body, photoSchema)) {
-    const photo = extractValidFields(req.body, photoSchema);
-    photo.id = photos.length;
-    photos.push(photo);
+    const photoid = await insertNewPhoto(req.body);
     res.status(201).json({
-      id: photo.id,
+      id: photoid,
       links: {
-        photo: `/photos/${photo.id}`,
-        business: `/businesses/${photo.businessid}`
+        photo: `/photos/${photoid}`,
+        business: `/businesses/${photoid.businessid}`
       }
     });
   } else {
@@ -60,14 +58,15 @@ async function getPhotoById(photoid) {
   const [results] = await mysqlPool.query(
     'SELECT * FROM photos WHERE id = ?',
     [photoid],
-);
-return results[0];
+  );
+  return results[0];
 }
 
-router.get('/:photoID', function (req, res, next) {
+router.get('/:photoID', async function (req, res, next) {
   const photoID = parseInt(req.params.photoID);
-  if (photos[photoID]) {
-    res.status(200).json(photos[photoID]);
+  const photo = await getPhotoById(photoID);
+  if (photo) {
+    res.status(200).json(photo);
   } else {
     next();
   }
@@ -82,13 +81,13 @@ async function updatePhotoById(photoid, photo) {
     photoSchema
   );
   const [result] = mysqlPool.query(
-      'UPDATE photos SET ? WHERE id = ?',
-      [validatedPhoto, photoid ]
+    'UPDATE photos SET ? WHERE id = ?',
+    [validatedPhoto, photoid]
   );
   return result.affectedRows > 0;
 }
 
-router.put('/:photoID', function (req, res, next) {
+router.put('/:photoID', async function (req, res, next) {
   const photoID = parseInt(req.params.photoID);
   if (photos[photoID]) {
 
@@ -100,14 +99,26 @@ router.put('/:photoID', function (req, res, next) {
       const updatedPhoto = extractValidFields(req.body, photoSchema);
       const existingPhoto = photos[photoID];
       if (existingPhoto && updatedPhoto.businessid === existingPhoto.businessid && updatedPhoto.userid === existingPhoto.userid) {
-        photos[photoID] = updatedPhoto;
-        photos[photoID].id = photoID;
-        res.status(200).json({
-          links: {
-            photo: `/photos/${photoID}`,
-            business: `/businesses/${updatedPhoto.businessid}`
+        try {
+          const result = await updatePhotoById(photoID, updatedPhoto);
+          if (result) {
+            res.status(200).json({
+              links: {
+                photo: `/photos/${photoID}`,
+                business: `/businesses/${updatedPhoto.businessid}`
+              }
+            });
+          } else {
+            res.status(404).json({
+              error: "No photo with the specified ID exists"
+            });
           }
-        });
+        } catch (err) {
+          console.error("Error updating photo:", err);
+          res.status(500).json({
+            error: "Error updating photo! Try again"
+          });
+        }
       } else {
         res.status(403).json({
           error: "Updated photo cannot modify businessid or userid"
@@ -124,22 +135,23 @@ router.put('/:photoID', function (req, res, next) {
   }
 });
 
+
 /*
  * Route to delete a photo.
  */
 
 async function deletePhotoByID(photoid) {
   const [result] = await mysqlPool.query(
-      'DELETE FROM photos WHERE id = ?',
-      [photoid]
+    'DELETE FROM photos WHERE id = ?',
+    [photoid]
   );
   return result.affectedRows > 0;
 }
 
-router.delete('/:photoID', function (req, res, next) {
+router.delete('/:photoID', async function (req, res, next) {
   const photoID = parseInt(req.params.photoID);
-  if (photos[photoID]) {
-    photos[photoID] = null;
+  const deletedphoto = await deletePhotoByID(photoID);
+  if (deletedphoto) {
     res.status(204).end();
   } else {
     next();
